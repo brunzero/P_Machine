@@ -14,6 +14,9 @@ int codeSize = 0;
 int code[MAX_STACK_HEIGHT];
 int buffer;
 
+char* parseOP(int op);
+void printCode(int *codes);
+
 typedef struct instruction
 {
     int op;
@@ -22,7 +25,7 @@ typedef struct instruction
 }instruction;
 
 
-void fetchInstruction()
+void fetchCode()
 {
     int i = 0;
     FILE *fp = fopen("mcode.txt", "r");
@@ -34,28 +37,78 @@ void fetchInstruction()
     }
 }
 
-void printInstruction(int *codes)
+void printCode(int *codes)
 {
     int i;
     for(i=0; i<codeSize; i++)
     {
-        if(i%3!=0)
-        {
-            printf("%d ", codes[i]);
-        }
-        else
+        if(i%3==0)
         {
             if(i!=0)
                 printf("\n");
+
             printf("%d ", i/3);
+
+            printf("%s ", parseOP(codes[i]));
+
+        }
+        else
+        {
             printf("%d ", codes[i]);
         }
     }
 }
 
+void fetchInstruction()
+{
+
+}
+
+char *parseOP(int op)
+{
+    char *opword = NULL;
+
+    switch(op)
+    {
+    case 1:
+        opword = "lit";
+        break;
+    case 2:
+        opword = "opr";
+        break;
+    case 3:
+        opword = "lod";
+        break;
+    case 4:
+        opword = "sto";
+        break;
+    case 5:
+        opword = "cal";
+        break;
+    case 6:
+        opword = "inc";
+        break;
+    case 7:
+        opword = "jmp";
+        break;
+    case 8:
+        opword = "jpc";
+        break;
+    case 9:
+        opword = "sio";
+    default:
+        break;
+
+    }
+
+    return opword;
+}
+
 int main(int argc, char *argv[])
 {
-    fetchInstruction();
-    printInstruction(code);
+    fetchCode();
+    printCode(code);
+
+
     return 0;
 }
