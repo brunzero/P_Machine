@@ -14,6 +14,7 @@ void fetchInstruction();
 int getBase(int level, int base);
 void initArray();
 void load();
+void executeInstruction();
 
 //instruction set
 void lit();
@@ -50,26 +51,26 @@ FILE *codeFile;
 int main(int argc, char *argv[])
 {
     load();
-   // printCode(code);
+    printCode(code);
 
     while(!isDone())
     {
         fetchInstruction();
+        executeInstruction();
     }
-
     return 0;
 }
 
+//initializes the arrays
+//fetches the code, then closes the file
 void load()
 {
     initArray();
-    stack[1] = 0;
-    stack[2] = 0;
-    stack[3] = 0;
     fetchCode();
     fclose(codeFile);
 }
 
+//reads in the file and populates the code array
 void fetchCode()
 {
     int i = 0;
@@ -82,6 +83,8 @@ void fetchCode()
     }
 }
 
+//prints the code read in for part 1 of the output
+//for the assignment
 void printCode(int *codes)
 {
     int i;
@@ -102,22 +105,27 @@ void printCode(int *codes)
             printf("%d ", codes[i]);
         }
     }
+    printf("\n\n");
 }
 
+//calls get instruction and increments pc counter
 void fetchInstruction()
 {
     getInstruction();
     pc += NEXT_INSTRUCTION;
 }
 
+//gets the instruction at the proper PC and places
+//inside of ir struct
 void getInstruction()
 {
     ir.op = code[pc];
     ir.l = code[pc + 1];
     ir.m =  code[pc + 2];
-    printf("%d,",code[pc]);
-    printf("%d,",code[pc + 1]);
-    printf("%d \n",code[pc + 2]);
+    printf("PC: %d, BP: %d, SP: %d\n", pc/3, bp, sp);
+    printf("%s, ", parseOP(code[pc]));
+    printf("%d, ",code[pc + 1]);
+    printf("%d, ",code[pc + 2]);
 }
 
 //initializes stack and code arrays
@@ -131,6 +139,15 @@ void initArray()
 
 }
 
+//check for halts and null data
+int isDone ()
+{
+    if(!code[pc] || (code[pc]==9 && code[pc + 2] == 2))
+        return 1;
+    return 0;
+}
+
+//changes the op passed in into a string
 char *parseOP(int op)
 {
     char *opword = NULL;
@@ -191,7 +208,16 @@ void lit ()
 //02
 void opr()
 {
-
+    switch(ir.m)
+    {
+    case 0:
+        sp = bp-1;
+        pc = stack[sp+4];
+        bp = stack[sp+3];
+        break;
+    default:
+        break;
+    }
 }
 
 //03
@@ -216,7 +242,7 @@ void cal()
     stack[sp + 3] = bp;
     stack[sp + 4] = pc;
     bp = sp + 1;
-    pc = ir.m;
+    pc = ir.m * NEXT_INSTRUCTION;
 }
 
 //06
@@ -253,17 +279,48 @@ void sio()
         sp = sp+1;
         scanf("%d", stack[sp]);
         break;
+    case 2:
+        isDone();
+        break;
     default:
         break;
     }
 }
 
-
-int isDone ()
+void executeInstruction()
 {
-    if(!code[pc] || (code[pc]==9 && code[pc + 2] == 2))
-        return 1;
-    return 0;
+    switch(ir.op)
+    {
+    case 1:
+        lit();
+        break;
+    case 2:
+        opr();
+        break;
+    case 3:
+        lod();
+        break;
+    case 4:
+        sto();
+        break;
+    case 5:
+        cal();
+        break;
+    case 6:
+        inc();
+        break;
+    case 7:
+        jmp();
+        break;
+    case 8:
+        jpc();
+        break;
+    case 9:
+        sio();
+    default:
+        break;
+
+    }
 }
 
 
