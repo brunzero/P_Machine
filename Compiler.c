@@ -12,9 +12,19 @@ void fetchCode();
 void getInstruction();
 void fetchInstruction();
 int getBase(int level, int base);
-void lit(int pushValue);
 void initArray();
 void load();
+
+//instruction set
+void lit();
+void opr();
+void lod();
+void sto();
+void cal();
+void inc();
+void jmp();
+void jpc();
+void sio();
 
 typedef struct instruction
 {
@@ -171,16 +181,17 @@ int getBase(int level, int base)
     return base;
 }
 
+//01
 void lit ()
 {
     sp ++;
     stack[sp] = ir.m;
 }
 
-//01
-void jmp ()
+//02
+void opr()
 {
-    pc = M * NEXT_INSTRUCTION;
+
 }
 
 //03
@@ -197,9 +208,60 @@ void sto()
     sp = sp-1;
 }
 
+//05
+void cal()
+{
+    stack[sp + 1] = 0;
+    stack[sp + 2] = getBase(ir.l, bp);
+    stack[sp + 3] = bp;
+    stack[sp + 4] = pc;
+    bp = sp + 1;
+    pc = ir.m;
+}
+
+//06
+void inc()
+{
+    sp = sp + ir.m;
+}
+//07
+void jmp ()
+{
+    pc = ir.m * NEXT_INSTRUCTION;
+}
+
+//08
+void jpc()
+{
+    if(stack[sp] == 0)
+    {
+        pc = ir.m;
+    }
+    sp = sp-1;
+}
+
+//09
+void sio()
+{
+    switch(ir.m)
+    {
+    case 0:
+        printf("%d\n", stack[sp]);
+        sp = sp-1;
+        break;
+    case 1:
+        sp = sp+1;
+        scanf("%d", stack[sp]);
+        break;
+    default:
+        break;
+    }
+}
+
+
 int isDone ()
 {
-    if(!code[pc])
+    if(!code[pc] || (code[pc]==9 && code[pc + 2] == 2))
         return 1;
     return 0;
 }
