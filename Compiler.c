@@ -15,6 +15,12 @@ int getBase(int level, int base);
 void initArray();
 void load();
 void executeInstruction();
+void printStack();
+void printInfo();
+
+int halt = 0;
+int arCount = 1;
+int presp = -1;
 
 //instruction set
 void lit();
@@ -53,10 +59,11 @@ int main(int argc, char *argv[])
     load();
     printCode(code);
 
-    while(!isDone())
+    while(halt == 0)
     {
         fetchInstruction();
         executeInstruction();
+        printInfo();
     }
     return 0;
 }
@@ -68,6 +75,18 @@ void load()
     initArray();
     fetchCode();
     fclose(codeFile);
+}
+
+void printInfo()
+{
+    if(ir.op!=NULL && ir.op!=0)
+    {
+        printf("%3s ", parseOP(ir.op));
+        printf("%3d ",ir.l);
+        printf("%3d ", ir.m);
+    }
+        printf(" %3d %3d %3d     ", pc/3, bp, sp);
+        printStack();
 }
 
 //reads in the file and populates the code array
@@ -122,10 +141,6 @@ void getInstruction()
     ir.op = code[pc];
     ir.l = code[pc + 1];
     ir.m =  code[pc + 2];
-    printf("PC: %d, BP: %d, SP: %d\n", pc/3, bp, sp);
-    printf("%s, ", parseOP(code[pc]));
-    printf("%d, ",code[pc + 1]);
-    printf("%d, ",code[pc + 2]);
 }
 
 //initializes stack and code arrays
@@ -133,9 +148,9 @@ void initArray()
 {
     int i;
     for(i = 0; i < MAX_STACK_HEIGHT; i ++)
-        stack[i] = NULL;
+        stack[i] = 0;
     for(i = 0; i < MAX_CODE_LENGTH; i ++)
-        code[i] = NULL;
+        code[i] = 0;
 
 }
 
@@ -145,6 +160,24 @@ int isDone ()
     if(!code[pc] || (code[pc]==9 && code[pc + 2] == 2))
         return 1;
     return 0;
+}
+
+void printStack()
+{
+    int i, j;
+
+    for(i=1; i<=sp; i++)
+    {
+        //for(j=0; j<arCount; j++)
+        //{
+            if(i == presp && arCount > 1)
+            {
+                printf("| ");
+            }
+        //}
+        printf("%d ", stack[i]);
+    }
+    printf("\n");
 }
 
 //changes the op passed in into a string
@@ -211,8 +244,9 @@ void opr()
     switch(ir.m)
     {
     case 0:
+        arCount--;
         sp = bp-1;
-        pc = stack[sp+4];
+        pc = stack[sp+4]*NEXT_INSTRUCTION;
         bp = stack[sp+3];
         break;
     default:
@@ -237,10 +271,13 @@ void sto()
 //05
 void cal()
 {
+    arCount++;
+    presp = sp + 1;
+
     stack[sp + 1] = 0;
     stack[sp + 2] = getBase(ir.l, bp);
     stack[sp + 3] = bp;
-    stack[sp + 4] = pc;
+    stack[sp + 4] = pc/3;
     bp = sp + 1;
     pc = ir.m * NEXT_INSTRUCTION;
 }
@@ -280,7 +317,7 @@ void sio()
         scanf("%d", stack[sp]);
         break;
     case 2:
-        isDone();
+        halt = 1;
         break;
     default:
         break;
