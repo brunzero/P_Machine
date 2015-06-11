@@ -43,12 +43,14 @@ typedef struct instruction
 int sp = 0;
 int bp = 1;
 int pc = 0;
+int tempPC = 0;
 int codeSize = 0;
 int code[MAX_CODE_LENGTH];
 int stack[MAX_STACK_HEIGHT];
 int buffer;
 instruction ir;
 FILE *codeFile;
+FILE *output;
 
 
 
@@ -57,7 +59,14 @@ FILE *codeFile;
 int main(int argc, char *argv[])
 {
     load();
+    output = fopen("stacktrace.txt", "w");
+
+    fprintf(output, "Line  OP    L  M\n");
+
     printCode(code);
+
+    fprintf(output, "                    pc  bp  sp   stack\n");
+    fprintf(output, "Initial values      %d   %d   %d\n", pc, bp, sp);
 
     while(halt == 0)
     {
@@ -65,6 +74,8 @@ int main(int argc, char *argv[])
         executeInstruction();
         printInfo();
     }
+
+    fclose(output);
     return 0;
 }
 
@@ -81,11 +92,13 @@ void printInfo()
 {
     if(ir.op!=NULL && ir.op!=0)
     {
-        printf("%3s ", parseOP(ir.op));
-        printf("%3d ",ir.l);
-        printf("%3d ", ir.m);
+        fprintf(output, "%2d   ", tempPC/3);
+        tempPC = pc;
+        fprintf(output, "%3s ", parseOP(ir.op));
+        fprintf(output, "%3d ",ir.l);
+        fprintf(output, "%3d ", ir.m);
     }
-        printf(" %3d %3d %3d     ", pc/3, bp, sp);
+        fprintf(output, " %3d %3d %3d     ", pc/3, bp, sp);
         printStack();
 }
 
@@ -112,19 +125,19 @@ void printCode(int *codes)
         if(i%3==0)
         {
             if(i!=0)
-                printf("\n");
+                fprintf(output, "\n");
 
-            printf("%d ", i/3);
+            fprintf(output, "%2d  ", i/3);
 
-            printf("%s ", parseOP(codes[i]));
+            fprintf(output, "  %3s ", parseOP(codes[i]));
 
         }
         else
         {
-            printf("%d ", codes[i]);
+            fprintf(output, "%3d ", codes[i]);
         }
     }
-    printf("\n\n");
+    fprintf(output, "\n\n");
 }
 
 //calls get instruction and increments pc counter
@@ -168,16 +181,13 @@ void printStack()
 
     for(i=1; i<=sp; i++)
     {
-        //for(j=0; j<arCount; j++)
-        //{
-            if(i == presp && arCount > 1)
-            {
-                printf("| ");
-            }
-        //}
-        printf("%d ", stack[i]);
+        if(i == bp && i>1)
+        {
+            fprintf(output, "| ");
+        }
+        fprintf(output, "%d ", stack[i]);
     }
-    printf("\n");
+    fprintf(output, "\n");
 }
 
 //changes the op passed in into a string
@@ -306,10 +316,11 @@ void jpc()
 //09
 void sio()
 {
+    int input;
     switch(ir.m)
     {
     case 0:
-        printf("%d\n", stack[sp]);
+        fprintf(output, "%d\n", stack[sp]);
         sp = sp-1;
         break;
     case 1:
@@ -322,6 +333,89 @@ void sio()
     default:
         break;
     }
+}
+
+void ret ()
+{
+    sp = bp-1;
+    pc = stack[sp+4]*NEXT_INSTRUCTION;
+    bp = stack[sp+3];
+}
+
+void neg ()
+{
+    stack[sp] = -stack[sp];
+}
+
+void add ()
+{
+    sp --;
+    stack[sp] = stack[sp] + stack[sp + 1];
+}
+
+void sub ()
+{
+    sp --;
+    stack[sp] = stack[sp] - stack[sp + 1];
+}
+
+void mul ()
+{
+    sp --;
+    stack[sp] = stack[sp] - stack[sp + 1];
+}
+
+void divid()
+{
+    sp --;
+    stack[sp] = stack[sp] / stack[sp + 1];
+}
+
+void mod ()
+{
+    sp --;
+    stack[sp] = stack[sp] % stack[sp + 1];
+}
+
+void eql ()
+{
+    sp --;
+    stack[sp] = stack[sp] == stack[sp + 1];
+}
+
+void neq ()
+{
+    sp --;
+    stack[sp] = stack[sp] != stack[sp + 1];
+}
+
+void lss ()
+{
+    sp --;
+    stack[sp] = stack[sp] < stack[sp + 1];
+}
+
+void leq ()
+{
+    sp --;
+    stack[sp] = stack[sp] <= stack[sp + 1];
+}
+
+void gtr ()
+{
+    sp --;
+    stack[sp] = stack[sp] > stack[sp + 1];
+}
+
+void geq ()
+{
+    sp --;
+    stack[sp] = stack[sp] >= stack[sp + 1];
+}
+
+void odd()
+{
+    stack[sp] = stack[sp] % 2;
 }
 
 void executeInstruction()
@@ -358,6 +452,75 @@ void executeInstruction()
         break;
 
     }
+
+    void opr()
+{
+    switch ( ir.m)
+    {
+        //rtn
+        case 0:
+            ret();
+            break;
+        //neg
+        case 1:
+            neg();
+            break;
+       //add
+        case 2:
+            add();
+            break;
+       //sub
+        case 3:
+            sub();
+            break;
+        //mul
+        case 4:
+            mul();
+            break;
+        //div
+        case 5:
+            divid();
+            break;
+        //odd
+        case 6:
+            odd();
+            break;
+        //mod
+        case 7:
+            mod();
+            break;
+        //eql
+        case 8:
+            eql();
+            break;
+        //neq
+        case 9:
+            neq();
+            break;
+        //lss
+        case 10:
+            lss();
+            break;
+        //leq
+        case 11:
+            leq();
+            break;
+        //gtr
+        case 12:
+            gtr();
+            break;
+        //geq
+        case 13:
+            geq();
+            break;
+
+        default:
+            fprintf(output, "OP code input was invalid. ");
+            halt = 1;
+            break;
+    }
+}
+
 }
 
 
